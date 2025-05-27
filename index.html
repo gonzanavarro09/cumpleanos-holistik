@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cumpleaños Holistik 360</title>
+  <img src="HolistickLogotipo_FullColor.png" alt="Logo Holistik 360" style="display: block; margin: 0 auto; max-width: 150px;">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #a7a7a7;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 8px 0;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .list {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .entry {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-left: 5px solid #007bff;
+      border-radius: 5px;
+    }
+    .entry span {
+      display: block;
+    }
+    .entry button {
+      background-color: #dc3545;
+      margin-top: 5px;
+    }
+    .entry button.edit {
+      background-color: #00611d;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cumpleaños Holistik 360</h1>
+
+  <form id="birthday-form">
+    <input type="text" id="name" placeholder="Nombre" required>
+    <select id="role" required>
+      <option value="">Seleccionar rol</option>
+      <option value="socio">Socio</option>
+      <option value="profesor">Profesor</option>
+    </select>
+    <input type="date" id="birthday" required>
+    <input type="hidden" id="editIndex">
+    <button type="submit">Guardar Cumpleaños</button>
+  </form>
+
+  <div class="list" id="birthday-list"></div>
+
+  <script>
+    const form = document.getElementById("birthday-form");
+    const list = document.getElementById("birthday-list");
+    let birthdays = JSON.parse(localStorage.getItem("birthdays")) || [];
+
+    function saveBirthdays() {
+      localStorage.setItem("birthdays", JSON.stringify(birthdays));
+    }
+
+    function getWeekRange() {
+      const today = new Date();
+      const start = new Date(today);
+      start.setDate(today.getDate() - today.getDay()); // domingo
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6); // sábado
+      return [start, end];
+    }
+
+    function isThisWeek(dateStr) {
+      const [start, end] = getWeekRange();
+      const d = new Date(dateStr);
+      d.setFullYear(new Date().getFullYear()); // comparar solo mes/día
+      return d >= start && d <= end;
+    }
+
+    function renderList() {
+      list.innerHTML = "";
+      birthdays
+        .filter(entry => isThisWeek(entry.birthday))
+        .forEach((entry, index) => {
+          const div = document.createElement("div");
+          div.className = "entry";
+          div.innerHTML = `
+            <span><strong>Nombre:</strong> ${entry.name}</span>
+            <span><strong>Rol:</strong> ${entry.role}</span>
+            <span><strong>Fecha:</strong> ${new Date(entry.birthday).toLocaleDateString()}</span>
+            <button onclick="editEntry(${index})" class="edit">Editar</button>
+            <button onclick="deleteEntry(${index})">Eliminar</button>
+          `;
+          list.appendChild(div);
+        });
+    }
+
+    function editEntry(index) {
+      const entry = birthdays[index];
+      document.getElementById("name").value = entry.name;
+      document.getElementById("role").value = entry.role;
+      document.getElementById("birthday").value = entry.birthday;
+      document.getElementById("editIndex").value = index;
+    }
+
+    function deleteEntry(index) {
+      if (confirm("¿Eliminar este cumpleaños?")) {
+        birthdays.splice(index, 1);
+        saveBirthdays();
+        renderList();
+      }
+    }
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const role = document.getElementById("role").value;
+      const birthday = document.getElementById("birthday").value;
+      const editIndex = document.getElementById("editIndex").value;
+
+      if (editIndex) {
+        birthdays[editIndex] = { name, role, birthday };
+        document.getElementById("editIndex").value = "";
+      } else {
+        birthdays.push({ name, role, birthday });
+      }
+
+      saveBirthdays();
+      form.reset();
+      renderList();
+    });
+
+    renderList();
+  </script>
+</body>
+</html>
