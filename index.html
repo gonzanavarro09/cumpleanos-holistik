@@ -3,24 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <title>Cumpleaños Holistik 360</title>
-  <img src="HolistickLogotipo_FullColor.png" alt="Logo Holistik 360" style="display: block; margin: 0 auto; max-width: 150px;">
-
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
       background: #a7a7a7;
     }
-    h1 {
+    h1, h2 {
       text-align: center;
       color: #333;
+    }
+    img {
+      display: block;
+      margin: 10px auto;
+      max-width: 150px;
     }
     form {
       background: #fff;
       padding: 15px;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
+      margin-bottom: 30px;
       max-width: 500px;
       margin-left: auto;
       margin-right: auto;
@@ -42,7 +45,7 @@
     }
     .list {
       max-width: 700px;
-      margin: 0 auto;
+      margin: 0 auto 30px;
     }
     .entry {
       background: white;
@@ -57,14 +60,16 @@
     .entry button {
       background-color: #dc3545;
       margin-top: 5px;
+      color: white;
     }
     .entry button.edit {
       background-color: #00611d;
-      color: black;
     }
   </style>
 </head>
 <body>
+
+  <img src="HolistickLogotipo_FullColor.png" alt="Logo Holistik 360">
   <h1>Cumpleaños Holistik 360</h1>
 
   <form id="birthday-form">
@@ -73,17 +78,24 @@
       <option value="">Seleccionar rol</option>
       <option value="socio">Socio</option>
       <option value="profesor">Profesor</option>
+      <option value="recepcionista">Recepcionista</option>
+      <option value="otro">Otro</option>
     </select>
     <input type="date" id="birthday" required>
     <input type="hidden" id="editIndex">
     <button type="submit">Guardar Cumpleaños</button>
   </form>
 
-  <div class="list" id="birthday-list"></div>
+  <h2>Cumpleaños de esta semana</h2>
+  <div class="list" id="birthday-week-list"></div>
+
+  <h2>Todos los cargados</h2>
+  <div class="list" id="birthday-all-list"></div>
 
   <script>
     const form = document.getElementById("birthday-form");
-    const list = document.getElementById("birthday-list");
+    const listWeek = document.getElementById("birthday-week-list");
+    const listAll = document.getElementById("birthday-all-list");
     let birthdays = JSON.parse(localStorage.getItem("birthdays")) || [];
 
     function saveBirthdays() {
@@ -102,29 +114,40 @@
     function isThisWeek(dateStr) {
       const [start, end] = getWeekRange();
       const d = new Date(dateStr);
-      d.setFullYear(new Date().getFullYear()); // comparar solo mes/día
+      d.setFullYear(new Date().getFullYear()); // ignoramos año original
       return d >= start && d <= end;
     }
 
-    function renderList() {
-      list.innerHTML = "";
-      birthdays
-        .filter(entry => isThisWeek(entry.birthday))
-        .forEach((entry, index) => {
-          const div = document.createElement("div");
-          div.className = "entry";
-          div.innerHTML = `
-            <span><strong>Nombre:</strong> ${entry.name}</span>
-            <span><strong>Rol:</strong> ${entry.role}</span>
-            <span><strong>Fecha:</strong> ${new Date(entry.birthday).toLocaleDateString()}</span>
-            <button onclick="editEntry(${index})" class="edit">Editar</button>
-            <button onclick="deleteEntry(${index})">Eliminar</button>
-          `;
-          list.appendChild(div);
-        });
+    function createEntryHTML(entry, index) {
+      return `
+        <span><strong>Nombre:</strong> ${entry.name}</span>
+        <span><strong>Rol:</strong> ${entry.role}</span>
+        <span><strong>Fecha:</strong> ${new Date(entry.birthday).toLocaleDateString()}</span>
+        <button class="edit" onclick="editEntry(${index})">Editar</button>
+        <button onclick="deleteEntry(${index})">Eliminar</button>
+      `;
     }
 
-    function editEntry(index) {
+    function renderList() {
+      listWeek.innerHTML = "";
+      listAll.innerHTML = "";
+
+      birthdays.forEach((entry, index) => {
+        const divAll = document.createElement("div");
+        divAll.className = "entry";
+        divAll.innerHTML = createEntryHTML(entry, index);
+        listAll.appendChild(divAll);
+
+        if (isThisWeek(entry.birthday)) {
+          const divWeek = document.createElement("div");
+          divWeek.className = "entry";
+          divWeek.innerHTML = createEntryHTML(entry, index);
+          listWeek.appendChild(divWeek);
+        }
+      });
+    }
+
+    window.editEntry = function(index) {
       const entry = birthdays[index];
       document.getElementById("name").value = entry.name;
       document.getElementById("role").value = entry.role;
@@ -132,7 +155,7 @@
       document.getElementById("editIndex").value = index;
     }
 
-    function deleteEntry(index) {
+    window.deleteEntry = function(index) {
       if (confirm("¿Eliminar este cumpleaños?")) {
         birthdays.splice(index, 1);
         saveBirthdays();
@@ -147,7 +170,7 @@
       const birthday = document.getElementById("birthday").value;
       const editIndex = document.getElementById("editIndex").value;
 
-      if (editIndex) {
+      if (editIndex !== "") {
         birthdays[editIndex] = { name, role, birthday };
         document.getElementById("editIndex").value = "";
       } else {
